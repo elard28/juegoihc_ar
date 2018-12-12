@@ -14,7 +14,7 @@ public class socketclient : MonoBehaviour {
 
 	public GameObject go;
 	private CharacterController cc;
-	public float speed = 2.0f;
+	public float speed = 3.0f;
 
 	void OnGUI()
 	{
@@ -34,6 +34,11 @@ public class socketclient : MonoBehaviour {
 
 	public class PlayerMessage : MessageBase
 	{
+		public Vector3 position;
+		public int lives;
+		public bool holding;
+		public int completed;
+
 		public Vector3 forward;
 		public Vector3 right;
 		public float h;
@@ -42,8 +47,8 @@ public class socketclient : MonoBehaviour {
 
 	public class EnemyMessage : MessageBase
 	{
-		public Vector3 pos;
-		public bool shot;
+		public Vector3 position;
+		public string name;
 	}
 
 	public class PlayerUpdateMessage : MessageBase
@@ -73,12 +78,35 @@ public class socketclient : MonoBehaviour {
 		if (client.isConnected) 
 		{
 			Debug.Log (go.transform.position);
+
+			if(Input.GetMouseButtonDown(0)){
+				Ray ray = Camera.main.ScreenPointToRay (Input.mousePosition);
+				RaycastHit hit;
+				//ShootRay (ray);
+				if (Physics.Raycast (ray, out hit, 1000.0f)) {
+					if (hit.collider.gameObject.tag == "esfera1") {
+						launcher lc = hit.collider.gameObject.GetComponent<launcher> ();
+						lc.shoot ();
+
+						EnemyMessage msg = new EnemyMessage ();
+						msg.position = lc.spawn;
+						msg.name = hit.collider.gameObject.name;
+
+						client.Send (MsgType.Command, msg);
+					}
+				}
+			}
 		}
+
+
 	}
+		
+
+
 
 	void Connect()
 	{
-		client.Connect ("192.168.1.3", 25000);
+		client.Connect ("192.168.43.142", 25000);
 		//client.RegisterHandler (MsgType.Connect, OnConnected);
 		client.RegisterHandler (888, ClientReceiveMessage);
 		//client.RegisterHandler (MyMsgType.Player, ClientReceiveMessage);
@@ -106,14 +134,16 @@ public class socketclient : MonoBehaviour {
 		float v = msg.v;
 
 		if (h != 0) {
-			forward = msg.forward;
-			cc.SimpleMove (forward * speed * h);
-			Debug.Log (forward);
+			//forward = msg.forward;
+			right = msg.right;
+			cc.SimpleMove (right * speed * h);
+			Debug.Log (right);
 		}
 		if (v != 0) {
-			right = msg.right;
-			cc.SimpleMove (right * speed * -v);
-			Debug.Log (right);
+			//right = msg.right;
+			forward = msg.forward;
+			cc.SimpleMove (forward * speed * v);
+			Debug.Log (forward);
 		}
 		if (v == 0 && h == 0) {
 			cc.SimpleMove (nu);
